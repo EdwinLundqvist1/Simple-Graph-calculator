@@ -14,6 +14,8 @@ public partial class Form1 : Form
     private Button drawButton = null!;
     private ListBox coordinateListBox = null!;
     private PictureBox graphPictureBox = null!;
+    private bool isPanning;
+    private Point lastMousePosition;
     public Form1()
     {
         InitializeComponent();
@@ -87,6 +89,10 @@ public partial class Form1 : Form
         graphPictureBox.BorderStyle = BorderStyle.FixedSingle;
         // Koppla PictureBoxens rit-event till vår metod
         graphPictureBox.Paint += GraphPictureBox_Paint!;
+        graphPictureBox.MouseWheel += GraphPictureBox_MouseWheel!;
+        graphPictureBox.MouseDown += GraphPictureBox_MouseDown!;
+        graphPictureBox.MouseMove += GraphPictureBox_MouseMove!;
+        graphPictureBox.MouseUp += GraphPictureBox_MouseUp!;
         this.Controls.Add(graphPictureBox);
     }
 
@@ -115,24 +121,27 @@ public partial class Form1 : Form
 
         int width = graphPictureBox.Width;
         int height = graphPictureBox.Height;
-        int centerX = width / 2;
-        int centerY = height / 2;
+        float xAxisY = height - (0 - viewMinY) / (viewMaxY - viewMinY) * height;
+        float yAxisX = (0 - viewMinX) / (viewMaxX - viewMinX) * width;
+
 
         for (int i = 0; i < graphPoints.Count; i++)
         {
             float x = graphPoints[i].X;
             float y = graphPoints[i].Y;
 
-            float scaledX = centerX + (x * (width / (viewMaxX - viewMinX)));
-            float scaledY = centerY - (y * (height / (viewMaxY - viewMinY)));
+            float scaledX = (x - viewMinX) / (viewMaxX - viewMinX) * width;
+            float scaledY = height - (y - viewMinY) / (viewMaxY - viewMinY) * height;
+
+
 
             if (i > 0)
             {
                 float previousX = graphPoints[i-1].X;
                 float previousY = graphPoints[i-1].Y;
                 
-                float previousScaledX = centerX + (previousX * (width / (viewMaxX - viewMinX)));
-                float previousScaledY = centerY - (previousY * (height / (viewMaxY - viewMinY)));
+                float previousScaledX = (previousX - viewMinX) / (viewMaxX - viewMinX) * width;
+                float previousScaledY = height - (previousY - viewMinY) / (viewMaxY - viewMinY) * height;
 
                 g.DrawLine(Pens.Blue, previousScaledX, previousScaledY, scaledX, scaledY);
             }
@@ -144,8 +153,8 @@ public partial class Form1 : Form
 
         
         // Rita X-axel (vågrät) och Y-axel (lodrät) i mitten av den vita ritan
-        g.DrawLine(blackPen, 0, centerY, width, centerY);
-        g.DrawLine(blackPen, centerX, 0, centerX, height);
+        g.DrawLine(blackPen, 0, xAxisY, width, xAxisY);
+        g.DrawLine(blackPen, yAxisX, 0, yAxisX, height);
     }
 
     public List<PointF> BuildGraphPoints(string expression, int width, int height)
@@ -171,5 +180,79 @@ public partial class Form1 : Form
             coordinates.Add($"({i}, {y})");
         }
         return coordinates;
+    }
+
+    private void GraphPictureBox_MouseWheel(object sender, MouseEventArgs e)
+    {
+        float zoomFactor = e.Delta > 0 ? 0.8f : 1.25f;
+
+        float centerX = (viewMinX + viewMaxX) / 2;
+        float centerY = (viewMinY + viewMaxY) / 2;
+
+        float halfWidth = (viewMaxX - viewMinX) / 2 * zoomFactor;
+        float halfHeight = (viewMaxY - viewMinY) / 2 * zoomFactor;
+
+        viewMinX = centerX - halfWidth;
+        viewMaxX = centerX + halfWidth;
+        viewMinY = centerY - halfHeight;
+        viewMaxY = centerY + halfHeight;
+
+        graphPoints = BuildGraphPoints(inputTextBox.Text, graphPictureBox.Width, graphPictureBox.Height);
+        coordinateListBox.Items.Clear();
+
+        foreach (object coordinate in AddWholeNumebersToListBox())
+        {
+            coordinateListBox.Items.Add(coordinate);
+        }
+
+
+        graphPictureBox.Invalidate();
+    }
+
+    private void GraphPictureBox_MouseDown(object sender, MouseEventArgs e)
+    {
+        if (e.Button == MouseButtons.Left)
+        {
+            graphPictureBox.Capture = true;
+            isPanning = true;
+            lastMousePosition = e.Location;
+        }
+    }
+
+    private void GraphPictureBox_MouseUp(object sender, MouseEventArgs e)
+    {
+        if (e.Button == MouseButtons.Left)
+        {
+            graphPictureBox.Capture = false;
+            isPanning = false;
+        }
+    }
+
+    private void GraphPictureBox_MouseMove(object sender, MouseEventArgs e)
+    {
+        if (!isPanning)
+        {
+            return;
+        }
+
+        float deltaX = e.X - lastMousePosition.X;
+        float deltaY = e.Y - lastMousePosition.Y;
+
+        float graphWidth = viewMaxX - viewMinX;
+        float graphHeight = viewMaxY - viewMinY;
+
+        float unitsPerPixelX = graphWidth / graphPictureBox.Width;
+        float unitsPerPixelY = graphHeight / graphPictureBox.Height;
+
+        viewMinX -= deltaX * unitsPerPixelX;
+        viewMaxX -= deltaX * unitsPerPixelX;
+
+        viewMinY += deltaY * unitsPerPixelY;
+        viewMaxY += deltaY * unitsPerPixelY;
+
+        lastMousePosition = e.Location;
+
+        graphPoints = BuildGraphPoints(inputTextBox.Text, graphPictureBox.Width, graphPictureBox.Height);
+        graphPictureBox.Invalidate();
     }
 }

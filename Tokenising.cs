@@ -83,9 +83,7 @@ public class ExpressionParser
         while (index < expression.Length)
         {
             char character = expression[index];
-            if (isNumber
-                ? char.IsDigit(character) || character == '.'
-                : char.IsLetter(character) || character == '_')
+            if (isNumber ? char.IsDigit(character) || character == '.' : char.IsLetter(character) || character == '_')
             {
                 index++;
                 continue;
