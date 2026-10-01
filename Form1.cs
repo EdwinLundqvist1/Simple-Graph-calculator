@@ -1,3 +1,4 @@
+using System.Drawing.Drawing2D;
 using System.Security.Cryptography.X509Certificates;
 
 namespace GrafRaknare;
@@ -71,6 +72,12 @@ public partial class Form1 : Form
         coordinateListBox.Location = new Point(10, 145);
         coordinateListBox.Size = new Size(180, 330);
         this.Controls.Add(coordinateListBox);
+        List<object> Coordinate = AddWholeNumebersToListBox();
+        for (int i = 0; i < Coordinate.Count; i++)
+        {
+            coordinateListBox.Items.Add(Coordinate[i]);
+        }
+        
 
         // 6. Ritytan (PictureBox) till höger där grafen hamnar
         graphPictureBox = new PictureBox();
@@ -90,7 +97,10 @@ public partial class Form1 : Form
         string expression = inputTextBox.Text;
         int width = graphPictureBox.Width;
         int height = graphPictureBox.Height;
-        
+        foreach (object coordinate in AddWholeNumebersToListBox())
+        {
+            coordinateListBox.Items.Add(coordinate);
+        }
         graphPoints =  BuildGraphPoints(expression, width, height);
         graphPictureBox.Invalidate();
 
@@ -147,8 +157,19 @@ public partial class Form1 : Form
         {
             double y = new Kalkylering().CheckExpression(tokenizedExpression, x);
             points.Add(new PointF((float)x, (float)y));
-            coordinateListBox.Items.Add($"({x:F2}, {y:F2})");
         }
         return points;
+    }
+
+    private List<object> AddWholeNumebersToListBox()
+    {
+        List<object> coordinates = new List<object>();
+
+        for (int i = (int)viewMinX; i <= (int)viewMaxX; i++)
+        {
+            int y = (int)new Kalkylering().CheckExpression(new ExpressionParser().ExpressionFormatter(inputTextBox.Text), i);
+            coordinates.Add($"({i}, {y})");
+        }
+        return coordinates;
     }
 }
