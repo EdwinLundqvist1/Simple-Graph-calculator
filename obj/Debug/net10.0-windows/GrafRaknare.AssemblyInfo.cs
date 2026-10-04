@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("GrafRaknare")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+98ef5292ad4fa5a2667f94558c238c0d8ca594a9")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0953078f4f5d3e6bf742bfefb2dc28f34fc68cc5")]
 [assembly: System.Reflection.AssemblyProductAttribute("GrafRaknare")]
 [assembly: System.Reflection.AssemblyTitleAttribute("GrafRaknare")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -6,11 +6,11 @@ namespace GrafRaknare;
 
 public partial class Form1 : Form
 {
-    private List<PointF> graphPoints = new();
-    private float viewMinX = -10f;
-    private float viewMaxX = 10f;
-    private float viewMinY = -10f;
-    private float viewMaxY = 10f;
+    private List<(double X, double Y)> graphPoints = new();
+    private double viewMinX = -10f;
+    private double viewMaxX = 10f;
+    private double viewMinY = -10f;
+    private double viewMaxY = 10f;
     private TextBox inputTextBox = null!;
     private Button drawButton = null!;
     private ListBox coordinateListBox = null!;
@@ -111,6 +111,7 @@ public partial class Form1 : Form
                 coordinateListBox.Items.Add(coordinate);
             }
             graphPoints =  BuildGraphPoints(expression, width, height);
+            AutoScaleY();
             graphPictureBox.Invalidate();
             }
         catch (Exception ex)
@@ -118,6 +119,25 @@ public partial class Form1 : Form
             MessageBox.Show($"Could not graph this expression: {ex.Message}");
         }
 
+    }
+
+    private void AutoScaleY()
+    {
+        List<double> yValues = graphPoints
+            .Where(point => double.IsFinite(point.Y))
+            .Select(point => point.Y)
+            .ToList();
+        if (yValues.Count == 0)
+        {
+            return;
+        }
+
+        double minY = yValues.Min();
+        double maxY = yValues.Max();
+        double padding = minY == maxY ? Math.Max(1, Math.Abs(minY) * 0.05) : (maxY - minY) * 0.05;
+        
+        viewMinY = minY - padding;
+        viewMaxY = maxY + padding;
     }
 
     // Denna metod ritar allt som syns inne i den vita rutan
@@ -129,65 +149,63 @@ public partial class Form1 : Form
 
         int width = graphPictureBox.Width;
         int height = graphPictureBox.Height;
-        float xAxisY = height - (0 - viewMinY) / (viewMaxY - viewMinY) * height;
-        float yAxisX = (0 - viewMinX) / (viewMaxX - viewMinX) * width;
+        double xAxisY = height - (0 - viewMinY) / (viewMaxY - viewMinY) * height;
+        double yAxisX = (0 - viewMinX) / (viewMaxX - viewMinX) * width;
 
 
         for (int i = 0; i < graphPoints.Count; i++)
         {
-            float x = graphPoints[i].X;
-            float y = graphPoints[i].Y;
+            double x = graphPoints[i].X;
+            double y = graphPoints[i].Y;
 
-            float scaledX = (x - viewMinX) / (viewMaxX - viewMinX) * width;
-            float scaledY = height - (y - viewMinY) / (viewMaxY - viewMinY) * height;
-
-
+            double scaledX = (x - viewMinX) / (viewMaxX - viewMinX) * width;
+            double scaledY = height - (y - viewMinY) / (viewMaxY - viewMinY) * height;
 
             if (i > 0)
             {
-                float previousX = graphPoints[i-1].X;
-                float previousY = graphPoints[i-1].Y;
+                double previousX = graphPoints[i-1].X;
+                double previousY = graphPoints[i-1].Y;
                 
-                float previousScaledX = (previousX - viewMinX) / (viewMaxX - viewMinX) * width;
-                float previousScaledY = height - (previousY - viewMinY) / (viewMaxY - viewMinY) * height;
+                double previousScaledX = (previousX - viewMinX) / (viewMaxX - viewMinX) * width;
+                double previousScaledY = height - (previousY - viewMinY) / (viewMaxY - viewMinY) * height;
                 if (IsVisiblePoint(previousScaledX, previousScaledY, width, height) && IsVisiblePoint(scaledX, scaledY, width, height))
                 {
-                    g.DrawLine(Pens.Blue, previousScaledX, previousScaledY, scaledX, scaledY);
+                    g.DrawLine(Pens.Blue,(float)previousScaledX,(float)previousScaledY,(float)scaledX,(float)scaledY);
                 }
             }
             else if (IsVisiblePoint(scaledX, scaledY, width, height))
             {
-                g.FillEllipse(Brushes.Blue, scaledX - 2, scaledY - 2, 4, 4);
+                g.FillEllipse(Brushes.Blue, (float)scaledX - 2, (float)scaledY - 2, 4, 4);
             }
         }
 
         
         // Rita X-axel (vågrät) och Y-axel (lodrät) i mitten av den vita ritan
-        if (float.IsFinite(xAxisY) && xAxisY >= 0 && xAxisY <= height)
+        if (double.IsFinite(xAxisY) && xAxisY >= 0 && xAxisY <= height)
         {
-            g.DrawLine(blackPen, 0, xAxisY, width, xAxisY);
+            g.DrawLine(blackPen, 0, (float)xAxisY, width, (float)xAxisY);
         }
-        if (float.IsFinite(yAxisX) && yAxisX >= 0 && yAxisX <= width)
+        if (double.IsFinite(yAxisX) && yAxisX >= 0 && yAxisX <= width)
         {
-        g.DrawLine(blackPen, yAxisX, 0, yAxisX, height);
+        g.DrawLine(blackPen, (float)yAxisX, 0, (float)yAxisX, height);
         }
     }
-    private static bool IsVisiblePoint(float x, float y, int width, int height)
+    private static bool IsVisiblePoint(double x, double y, int width, int height)
     {
-        return float.IsFinite(x) && float.IsFinite(y)
+        return double.IsFinite(x) && double.IsFinite(y)
             && x >= 0 && x <= width
             && y >= 0 && y <= height;
     }
 
-    public List<PointF> BuildGraphPoints(string expression, int width, int height)
+    public List<(double X, double Y)> BuildGraphPoints(string expression, int width, int height)
     {
-        List<PointF> points = new List<PointF>();
+        List<(double X, double Y)> points = new();
         double step = (viewMaxX - viewMinX) / width;
         object[] tokenizedExpression = new ExpressionParser().ExpressionFormatter(expression);
         for (double x = viewMinX; x <= viewMaxX; x += step)
         {
             double y = new Kalkylering().CheckExpression(tokenizedExpression, x);
-            points.Add(new PointF((float)x, (float)y));
+            points.Add(new (x,y));
         }
         return points;
     }
@@ -196,7 +214,7 @@ public partial class Form1 : Form
     {
         List<object> coordinates = new List<object>();
 
-        for (float i = viewMinX; i <= viewMaxX; i++)
+        for (double i = viewMinX; i <= viewMaxX; i++)
         {
             double y = new Kalkylering().CheckExpression(new ExpressionParser().ExpressionFormatter(inputTextBox.Text), i);
             coordinates.Add($"({i}, {y})");
@@ -206,13 +224,13 @@ public partial class Form1 : Form
 
     private void GraphPictureBox_MouseWheel(object sender, MouseEventArgs e)
     {
-        float zoomFactor = e.Delta > 0 ? 0.8f : 1.25f;
+        double zoomFactor = e.Delta > 0 ? 0.8f : 1.25f;
 
-        float centerX = (viewMinX + viewMaxX) / 2;
-        float centerY = (viewMinY + viewMaxY) / 2;
+        double centerX = (viewMinX + viewMaxX) / 2;
+        double centerY = (viewMinY + viewMaxY) / 2;
 
-        float halfWidth = (viewMaxX - viewMinX) / 2 * zoomFactor;
-        float halfHeight = (viewMaxY - viewMinY) / 2 * zoomFactor;
+        double halfWidth = (viewMaxX - viewMinX) / 2 * zoomFactor;
+        double halfHeight = (viewMaxY - viewMinY) / 2 * zoomFactor;
 
         viewMinX = centerX - halfWidth;
         viewMaxX = centerX + halfWidth;
@@ -257,14 +275,14 @@ public partial class Form1 : Form
             return;
         }
 
-        float deltaX = e.X - lastMousePosition.X;
-        float deltaY = e.Y - lastMousePosition.Y;
+        double deltaX = e.X - lastMousePosition.X;
+        double deltaY = e.Y - lastMousePosition.Y;
 
-        float graphWidth = viewMaxX - viewMinX;
-        float graphHeight = viewMaxY - viewMinY;
+        double graphWidth = viewMaxX - viewMinX;
+        double graphHeight = viewMaxY - viewMinY;
 
-        float unitsPerPixelX = graphWidth / graphPictureBox.Width;
-        float unitsPerPixelY = graphHeight / graphPictureBox.Height;
+        double unitsPerPixelX = graphWidth / graphPictureBox.Width;
+        double unitsPerPixelY = graphHeight / graphPictureBox.Height;
 
         viewMinX -= deltaX * unitsPerPixelX;
         viewMaxX -= deltaX * unitsPerPixelX;
