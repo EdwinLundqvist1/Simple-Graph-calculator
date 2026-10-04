@@ -85,7 +85,11 @@ public partial class Form1 : Form
         // 6. Ritytan (PictureBox) till höger där grafen hamnar
         graphPictureBox = new PictureBox();
         graphPictureBox.Location = new Point(200, 10);
-        graphPictureBox.Size = new Size(670, 465);
+        graphPictureBox.Anchor = AnchorStyles.Top 
+        | AnchorStyles.Bottom 
+        | AnchorStyles.Left 
+        | AnchorStyles.Right;
+        graphPictureBox.Size = new Size(ClientSize.Width - 220, ClientSize.Height - 20);
         graphPictureBox.BackColor = Color.White;
         graphPictureBox.BorderStyle = BorderStyle.FixedSingle;
         // Koppla PictureBoxens rit-event till vår metod
