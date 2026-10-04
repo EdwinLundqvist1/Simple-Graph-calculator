@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Drawing.Drawing2D;
 using System.Security.Cryptography.X509Certificates;
 
@@ -99,16 +100,23 @@ public partial class Form1 : Form
     private void DrawButton_Click(object sender, EventArgs e)
     {
         // Töm listan på gamla koordinater
-        coordinateListBox.Items.Clear();
-        string expression = inputTextBox.Text;
-        int width = graphPictureBox.Width;
-        int height = graphPictureBox.Height;
-        foreach (object coordinate in AddWholeNumebersToListBox())
+        try
         {
-            coordinateListBox.Items.Add(coordinate);
+            coordinateListBox.Items.Clear();
+            string expression = inputTextBox.Text;
+            int width = graphPictureBox.Width;
+            int height = graphPictureBox.Height;
+            foreach (object coordinate in AddWholeNumebersToListBox())
+            {
+                coordinateListBox.Items.Add(coordinate);
+            }
+            graphPoints =  BuildGraphPoints(expression, width, height);
+            graphPictureBox.Invalidate();
+            }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Could not graph this expression: {ex.Message}");
         }
-        graphPoints =  BuildGraphPoints(expression, width, height);
-        graphPictureBox.Invalidate();
 
     }
 
@@ -142,10 +150,12 @@ public partial class Form1 : Form
                 
                 float previousScaledX = (previousX - viewMinX) / (viewMaxX - viewMinX) * width;
                 float previousScaledY = height - (previousY - viewMinY) / (viewMaxY - viewMinY) * height;
-
-                g.DrawLine(Pens.Blue, previousScaledX, previousScaledY, scaledX, scaledY);
+                if (IsVisiblePoint(previousScaledX, previousScaledY, width, height) && IsVisiblePoint(scaledX, scaledY, width, height))
+                {
+                    g.DrawLine(Pens.Blue, previousScaledX, previousScaledY, scaledX, scaledY);
+                }
             }
-            else
+            else if (IsVisiblePoint(scaledX, scaledY, width, height))
             {
                 g.FillEllipse(Brushes.Blue, scaledX - 2, scaledY - 2, 4, 4);
             }
@@ -153,8 +163,20 @@ public partial class Form1 : Form
 
         
         // Rita X-axel (vågrät) och Y-axel (lodrät) i mitten av den vita ritan
-        g.DrawLine(blackPen, 0, xAxisY, width, xAxisY);
+        if (float.IsFinite(xAxisY) && xAxisY >= 0 && xAxisY <= height)
+        {
+            g.DrawLine(blackPen, 0, xAxisY, width, xAxisY);
+        }
+        if (float.IsFinite(yAxisX) && yAxisX >= 0 && yAxisX <= width)
+        {
         g.DrawLine(blackPen, yAxisX, 0, yAxisX, height);
+        }
+    }
+    private static bool IsVisiblePoint(float x, float y, int width, int height)
+    {
+        return float.IsFinite(x) && float.IsFinite(y)
+            && x >= 0 && x <= width
+            && y >= 0 && y <= height;
     }
 
     public List<PointF> BuildGraphPoints(string expression, int width, int height)
@@ -174,9 +196,9 @@ public partial class Form1 : Form
     {
         List<object> coordinates = new List<object>();
 
-        for (int i = (int)viewMinX; i <= (int)viewMaxX; i++)
+        for (float i = viewMinX; i <= viewMaxX; i++)
         {
-            int y = (int)new Kalkylering().CheckExpression(new ExpressionParser().ExpressionFormatter(inputTextBox.Text), i);
+            double y = new Kalkylering().CheckExpression(new ExpressionParser().ExpressionFormatter(inputTextBox.Text), i);
             coordinates.Add($"({i}, {y})");
         }
         return coordinates;
