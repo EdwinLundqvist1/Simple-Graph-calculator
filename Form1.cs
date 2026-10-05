@@ -138,7 +138,7 @@ public partial class Form1 : Form
 
         double minY = yValues.Min();
         double maxY = yValues.Max();
-        double padding = minY == maxY ? Math.Max(1, Math.Abs(minY) * 0.05) : (maxY - minY) * 0.05;
+        double padding = minY == maxY ? Math.Max(1, Math.Abs(minY) * 0.01) : 0;
         
         viewMinY = minY - padding;
         viewMaxY = maxY + padding;
@@ -172,7 +172,7 @@ public partial class Form1 : Form
                 
                 double previousScaledX = (previousX - viewMinX) / (viewMaxX - viewMinX) * width;
                 double previousScaledY = height - (previousY - viewMinY) / (viewMaxY - viewMinY) * height;
-                if (IsVisiblePoint(previousScaledX, previousScaledY, width, height) && IsVisiblePoint(scaledX, scaledY, width, height))
+                if (TryClippingGraph(ref previousScaledX,ref previousScaledY,ref scaledX,ref scaledY, width, height))
                 {
                     g.DrawLine(Pens.Blue,(float)previousScaledX,(float)previousScaledY,(float)scaledX,(float)scaledY);
                 }
@@ -193,6 +193,68 @@ public partial class Form1 : Form
         {
         g.DrawLine(blackPen, (float)yAxisX, 0, (float)yAxisX, height);
         }
+    }
+
+    private static bool TryClippingGraph(
+        ref double x1, ref double y1,
+        ref double x2, ref double y2,
+        int width, int height)
+    {
+        double dx = x2 - x1;
+        double dy = y2 - y1;
+
+        if (!double.IsFinite(x1) || !double.IsFinite(y1)
+            || !double.IsFinite(x2) || !double.IsFinite(y2)
+            || !double.IsFinite(dx) || !double.IsFinite(dy))
+        {
+            return false;
+        }
+
+        double tStart = 0;
+        double tEnd = 1;
+
+        if (!ClipLine(-dx, x1, ref tStart, ref tEnd)
+            || !ClipLine(dx, width - x1, ref tStart, ref tEnd)
+            || !ClipLine(-dy, y1, ref tStart, ref tEnd)
+            || !ClipLine(dy, height - y1, ref tStart, ref tEnd))
+        {
+            return false;
+        }
+
+        double originalX1 = x1;
+        double originalY1 = y1;
+
+        x1 = Math.Clamp(originalX1 + tStart * dx, 0, width);
+        y1 = Math.Clamp(originalY1 + tStart * dy, 0, height);
+        x2 = Math.Clamp(originalX1 + tEnd * dx, 0, width);
+        y2 = Math.Clamp(originalY1 + tEnd * dy, 0, height);
+
+        return true;
+    }
+
+    private static bool ClipLine(
+        double p, double q,
+        ref double tStart, ref double tEnd)
+    {
+        if (p == 0)
+        {
+            return q >= 0;
+        }
+
+        double ratio = q / p;
+
+        if (p < 0)
+        {
+            if (ratio > tEnd) return false;
+            if (ratio > tStart) tStart = ratio;
+        }
+        else
+        {
+            if (ratio < tStart) return false;
+            if (ratio < tEnd) tEnd = ratio;
+        }
+
+        return true;
     }
     private static bool IsVisiblePoint(double x, double y, int width, int height)
     {
