@@ -147,6 +147,7 @@ public partial class Form1 : Form
     // Denna metod ritar allt som syns inne i den vita rutan
     private void GraphPictureBox_Paint(object sender, PaintEventArgs e)
     {
+
         Graphics g = e.Graphics;
 
         Pen blackPen = new Pen(Color.Black, 2);
@@ -155,7 +156,7 @@ public partial class Form1 : Form
         int height = graphPictureBox.Height;
         double xAxisY = height - (0 - viewMinY) / (viewMaxY - viewMinY) * height;
         double yAxisX = (0 - viewMinX) / (viewMaxX - viewMinX) * width;
-
+        DrawGrid(g, width, height);
 
         for (int i = 0; i < graphPoints.Count; i++)
         {
@@ -193,6 +194,77 @@ public partial class Form1 : Form
         {
         g.DrawLine(blackPen, (float)yAxisX, 0, (float)yAxisX, height);
         }
+    }
+
+    private void DrawGrid(Graphics graphics, int width, int height)
+    {
+        double xRange = viewMaxX - viewMinX;
+        double yRange = viewMaxY - viewMinY;
+
+        if (!double.IsFinite(xRange) || !double.IsFinite(yRange)
+            || xRange <= 0 || yRange <= 0)
+        {
+            return;
+        }
+
+        double xStep = GetGridStep(xRange);
+        double yStep = GetGridStep(yRange);
+
+        using Pen gridPencil = new(Color.FromArgb(232,232,232));
+
+        double firstX = Math.Ceiling(viewMinX / xStep) * xStep;
+        
+        for (int i = 0; i < 100; i++)
+        {
+            double x = (firstX + i * xStep);
+            if (!double.IsFinite(x) || x > viewMaxX)
+            {
+                break;
+            }
+
+            double pixelX = (x - viewMinX) / xRange * width;
+            if (double.IsFinite(pixelX) && pixelX >= 0 && pixelX <= width)
+            {
+                graphics.DrawLine(gridPencil, (float)pixelX, 0, (float)pixelX, height);
+            }
+
+        }
+        
+        double firstY = Math.Ceiling(viewMinY / yStep) * yStep;
+        for (int i = 0; i < 100; i++)
+        {
+            double y = firstY + i * yStep;
+            if (!double.IsFinite(y) || y > viewMaxY) break;
+
+            double pixelY = height - (y - viewMinY) / yRange * height;
+            if (double.IsFinite(pixelY) && pixelY >= 0 && pixelY <= height)
+            {
+                graphics.DrawLine(gridPencil, 0, (float)pixelY, width, (float)pixelY);
+            }
+        }
+
+    }
+
+    private static double GetGridStep(double range)
+    {
+        double roughStep = range / 10;
+        if (!double.IsFinite(roughStep) || roughStep <= 0)
+        {
+            return range;
+        }
+        double magnitude = Math.Pow(10, Math.Floor(Math.Log10(roughStep)));
+        if (!double.IsFinite(magnitude) || magnitude <= 0)
+        {
+            return range;
+        }
+
+        double normalizedStep = roughStep / magnitude;
+
+        if (normalizedStep <= 1) return magnitude;
+        if (normalizedStep <= 2) return 2 * magnitude;
+        if (normalizedStep <= 5) return 5 * magnitude;
+
+        return 10 * magnitude;
     }
 
     private static bool TryClippingGraph(
