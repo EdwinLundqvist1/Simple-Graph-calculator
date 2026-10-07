@@ -73,14 +73,15 @@ public partial class Form1 : Form
         // 5. ListBox för att lista alla uträknade punkter
         coordinateListBox = new ListBox();
         coordinateListBox.Location = new Point(10, 145);
-        coordinateListBox.Size = new Size(180, 330);
+        coordinateListBox.Size = new Size(260, 330);
         this.Controls.Add(coordinateListBox);
         List<object> Coordinate = AddWholeNumebersToListBox();
         for (int i = 0; i < Coordinate.Count; i++)
         {
-            coordinateListBox.Items.Add(Coordinate[i]);
+            coordinateListBox.Items.Add(Coordinate[i]);   
         }
-        
+
+
 
         // 6. Ritytan (PictureBox) till höger där grafen hamnar
         graphPictureBox = new PictureBox();
@@ -116,6 +117,7 @@ public partial class Form1 : Form
             }
             graphPoints =  BuildGraphPoints(expression, width, height);
             AutoScaleY();
+            ReszieCoordinateListBox();
             graphPictureBox.Invalidate();
             }
         catch (Exception ex)
@@ -142,6 +144,29 @@ public partial class Form1 : Form
         
         viewMinY = minY - padding;
         viewMaxY = maxY + padding;
+    }
+
+
+    private void ReszieCoordinateListBox()
+    {
+        int longestText = 0;
+        foreach (object item in coordinateListBox.Items)
+        {
+            longestText = Math.Max(longestText, TextRenderer.MeasureText(item.ToString() ?? "", coordinateListBox.Font).Width);
+        }
+
+        int maxListWidth = Math.Max(180, ClientSize.Width / 3);
+        int desiredWidth = longestText + SystemInformation.VerticalScrollBarWidth + 12;
+
+        coordinateListBox.Width = Math.Min(Math.Max(180, desiredWidth), maxListWidth);
+        coordinateListBox.HorizontalScrollbar = true;
+
+        int desiredHeight = Math.Max(180, coordinateListBox.Items.Count * coordinateListBox.ItemHeight + 4);
+        coordinateListBox.Height = Math.Min(desiredHeight, ClientSize.Height / 2);
+
+        graphPictureBox.Left = coordinateListBox.Right + 10;
+        graphPictureBox.Width = ClientSize.Width - graphPictureBox.Left - 10;
+
     }
 
     // Denna metod ritar allt som syns inne i den vita rutan
@@ -355,14 +380,14 @@ public partial class Form1 : Form
         for (double i = viewMinX; i <= viewMaxX; i++)
         {
             double y = new Kalkylering().CheckExpression(new ExpressionParser().ExpressionFormatter(inputTextBox.Text), i);
-            coordinates.Add($"({i}, {y})");
+            coordinates.Add($"({i:F2}, {y:F2})");
         }
         return coordinates;
     }
 
     private void GraphPictureBox_MouseWheel(object sender, MouseEventArgs e)
     {
-        double zoomFactor = e.Delta > 0 ? 0.8f : 1.25f;
+        double zoomFactor = Math.Pow(0.97, e.Delta / 120.0);
 
         double centerX = (viewMinX + viewMaxX) / 2;
         double centerY = (viewMinY + viewMaxY) / 2;
